@@ -1,0 +1,439 @@
+﻿@{
+	Layout = "~/Views/Shared/_ViewStart.cshtml";
+}
+
+@section scripts
+{
+	<script language="javascript">
+		var statusPagina = '';
+
+		function setupToolbar(state) {
+
+			if (state != null && state != "") {
+				statusPagina = state;
+			} else {
+				state = statusPagina;
+			}
+			var element = $('.acoes.mvc');
+			element.toolbar({
+				'groups': [
+					{
+						'buttons': [
+							{ 'action': 'limpar', 'title': "Limpar", 'onClick': function () { limpar(); } }
+							, { 'action': 'alterar', 'title': "Alterar", 'onClick': function () { alterar(); } }
+							, { 'action': 'incluir', 'title': "Incluir", 'onClick': function () { incluir(); } }
+							, { 'action': 'excluir', 'title': "Excluir", 'onClick': function () { excluir(); } }
+						]
+
+					}
+
+				],
+				'controllerName': pathroot + '/FabricaKars/Modelo',
+				'state': state
+			));
+		}
+
+		$(function () {
+
+			$("#cod_modelo").attr("disabled", false);
+			$("#nome_modelo").attr("disabled", true);
+			$('input[name=ind_lista_impedimento] [value="S"]', '#frmFabricaKars').prop('checked', false)
+			$('input[name=ind_lista_impedimento] [value="N"]', '#frmFabricaKars').prop('checked', true)
+			setupToolbar('inicio');
+
+		});
+
+		$("#cod_modelo").keypress(mascInt);
+
+		function validaCodigo() {
+
+			if (cod_modelo.value == '0') {
+				$("#cod_modelo").val("");
+				setupToolbar('inicio');
+				$("#cod_modelo").focus();
+				alert('Código não deve iniciar com zero');
+				return false;
+			}
+
+			else {
+				obterDadosVeiculo();
+			}
+		}
+
+		function bloqueiaCaracteresEspeciais(event) {
+			var tecla = event.which || event.keyCode;
+			if ((tecla < 48 || tecla > 57) && (tecla < 65 || tecla > 90) && (tecla < 97 || tecla > 122) && (tecla !== 32) && (tecla != 8) && (tecla != 13))
+				event.preventDefault();
+		}
+		if (tecla == 13) {
+			exibirPesquisa();
+		}
+		
+	}
+
+
+		function obterDadosVeiculo() {
+			var codigoModelo = $("#cod_modelo").val();
+
+			if (codigoModelo != "") {
+				$.ajax({
+					url: pathRoot + '/FabricaKars/Modelo/ObterDadosVeiculo',
+
+					data: JSON.stringify({
+						CodigoModelo: parseInt(codigoModelo)
+					}),
+					method: 'POST',
+					contentType: 'application/json; charset=utf-8',
+					async: true,
+					dataType: 'json',
+					success: function (data, status) {
+						$("#cod_modelo").addClass("desabilitar-campo");
+						$("#lupa_pesq_modelo_veiculo").addClass("desabilitar-campo");
+						$("#nome_modelo").attr("disabled" false);
+
+						if (data.success) {
+							var result = data.result;
+							if (result != null) {
+								$("#cod_modelo").val(result.cod_modelo);
+								$("#nome_modelo").val(result.nome_modelo);
+
+								var confirma_ind_lista_impedimento = result.ind_lista_impedimento;
+								if (confirma_ind_lista_impedimento == "S") {
+									$('input[name=ind_lista_impedimento] [value="S"]', '#frmFabricaKars').prop('checked', true)
+								}
+								else {
+									$('input[name=ind_lista_impedimento] [value="N"]', '#frmFabricaKars').prop('checked', true)
+								}
+
+								setupToolbar("alteracao");
+							}
+							else {
+								$("#nome_modelo").attr("disabled", false);
+								$("#cod_modelo").attr("disabled", false);
+								$("#cod_modelo").val(codigoModelo);
+								$("#nome_modelo").focus();
+
+								setupToolbar("inclusao");
+							}
+						}
+						else {
+							$("#nome_modelo").attr("disabled", false);
+							$("#cod_modelo").attr("disabled", true);
+							$("#cod_modelo").val(codigoModelo);
+							$("#nome_modelo").focus();
+							
+							setupToolbar("inclusao");
+
+						}					
+
+					else {
+						$("#nome_modelo").attr("disabled", false);
+						$("#cod_modelo").attr("disabled", true);
+						$("#cod_modelo").val(codigoModelo);
+						$("#nome_modelo").focus();
+						$("#cod_modelo").removeClass("desabilitar-campo");
+						$("#lupa_pesq_modelo_veiculo").removeClass("desabilitar-campo");
+						setupToolbar("inclusao");
+				}
+
+			},
+			error: function (data, status) {
+				$('#cod_modelo').val("");
+				alert('Código do modelo não foi informado);
+				$("#cod_modelo").focus();
+				setupToolbar("inicio");
+			}
+				
+			});
+			}
+		}
+
+		function limpar() {
+			$("#cod_modelo").val("");
+			$("#nome_modelo").val("");
+			$("#cod_modelo").focus();
+			$("#cod_modelo").removeClass("desabilitar-campo");
+			$("#lupa_pesq_modelo_veiculo").removeClass("desabilitar-campo");
+			$('input[name=ind_lista_impedimento] [value="S"]', '#frmFabricaKars').prop('checked', false)
+			$('input[name=ind_lista_impedimento] [value="S"]', '#frmFabricaKars').prop('checked', true)
+			$("#nome_modelo").attr("disabled", true);
+			$("#cod_modelo").attr("disabled", false);
+			setupToolbar('inicio');
+		}
+
+		function excluirVeiculo() {
+			if (confirm("Confirma a exclusão?")) {
+				$.notificacoes.limpar();
+				var codigoModelo = $("#cod_modelo").val();
+				var modeloExclusao = $("#nome_modelo").val();
+				var impedimento = $("input[id=ind_lista_impedimento]:checked", "#frmFabricaKars".val();
+
+				$.ajax({
+					url: pathRoot + 'FabricaKars/Modelo/ExcluirVeiculo',
+
+					method: 'POST',
+					dataType: 'json',
+					data: JSON.stringify({
+						CodigoModelo: parseInt(codigoModelo),
+						ModeloExclusao: modeloExclusao,
+						IndListaImpedimento: impedimento,
+					}),
+
+					contentType: 'application/json; charset=utf-8',
+					success: function (data, status) {
+						if (data.success) {
+							if (data.retorno.cod_retorno == "0") {
+								limpar();
+								$.notificacoes.sucesso("" + data.retorno.msg_retorno);
+							}
+							else {
+								$.notificacoes.erro("" + data.retorno.msg_retorno);
+							}
+						}
+						else {
+							$.notificacoes.erro(data.retorno.msg_retorno);
+						}
+					},
+					error: function (data, status) {
+						$.notificacoes.erro(data.retorno.msg_retorno);
+					}
+				)
+			};
+
+		}
+
+		}
+
+		function incluirVeiculo() {
+			$.notificacoes.limpar();
+			var codigoModelo = $("#cod_modelo").val();
+			var nomeModelo = $("#nome_modelo").val();
+			var impedimento = $("input[id=ind_lista_impedimento]:checked", "#frmFabricaKars").val();
+
+			$.ajax({
+				url: pathRoot + 'FabricaKars/Modelo/IncluirVeiculo'
+				method: 'POST',
+				dataType: 'json',
+				data: JSON.stringify({
+					'COD_MODELO': parseInt(codigoModelo),
+					'NOME_MODELO': nomeModelo,
+					'IND_LISTA_IMPEDIMENTO': impedimento,
+				}),
+
+				contentType: 'application/json; charset=utf-8',
+				success: function (data, status) {
+
+					if (data.success) {
+						if (data.retorno.cod_retorno == "0") {
+							limpar();
+							$.notificacoes.sucesso("" + data.retorno.msg_retorno);
+						}
+						else {
+							$.notificacoes.erro("" + data.retorno.msg_retorno);
+						}
+					}
+					else {
+						$.notificacoes.erro(data.retorno.msg_retorno);
+					}
+				},
+				error: function (data, status) {
+					$.notificacoes.erro(data.retorno.msg_retorno);
+				}
+			)
+		};
+	}
+
+		function alterarDadosVeiculo() {
+			$.notificacoes.limpar();
+
+			var codigoModelo = $("#cod_modelo").val();
+			var nomeModelo = $("#nome_modelo").val();
+			var impedimento = $("input[id=ind_lista_impedimento]:checked", "#frmFabricaKars").val();
+
+			$.ajax({
+				url: pathRoot + 'FabricaKars/Modelo/AlterarDadosVeiculo'
+				method: 'POST',
+				dataType: 'json',
+				data: JSON.stringify({
+					'COD_MODELO': parseInt(codigoModelo),
+					'NOME_MODELO': nomeModelo,
+					'IND_LISTA_IMPEDIMENTO': impedimento,
+				}),
+
+				contentType: 'application/json; charset=utf-8',
+				success: function (data, status) {
+
+					if (data.success) {
+						if (data.retorno.cod_retorno == "0") {
+							limpar();
+							$.notificacoes.sucesso("" + data.retorno.msg_retorno);
+						}
+						else {
+							$.notificacoes.erro("" + data.retorno.msg_retorno);
+						}
+					}
+					else {
+						$.notificacoes.erro(data.retorno.msg_retorno);
+					}
+				},
+				error: function (data, status) {
+					$.notificacoes.erro(data.retorno.msg_retorno);
+				}
+			)
+		};
+
+	}
+
+		// INICIO MODAL
+
+		eventoHideInicializado = false;
+		var caminhoPesquisaModeloVeiculo = "SYSMVC/FabricaKars/PesquisaModeloVeiculo/Index";
+
+		function iniciarPesqTabela(seletorAcionador, nomeModal, titulo, width, height, tipoPesquisa, tipoEvento, funcao, tipoBs) {
+			criarTemplateModal(nomeModal, tipoBs, width, height);
+
+			$(seletorAcionador).on('click', function (e) {
+
+				var _src = caminhoPesquisaModeloVeiculo;
+				var _width = width;
+				var _height = heigth;
+				var _modalPesquisaModeloVeiculo = "#" + nomeModal;
+				var _targetIdFrame = _modalPesquisaModeloVeiculo + "Iframe";
+				var _tituloSeletorPesquisaModeloVeiculo = _modalPesquisaModeloVeiculo + "Titulo";
+				var _url = _src + "?NomeIframe=" + nomeModal + "Iframe&Evento=" + tipoEvento + "&TipoPesquisa=" + tipoPesquisa;
+
+				console.log(_url);
+
+				$(_tituloSeletorPesquisaModeloVeiculo).html(titulo);
+
+				if ('eventoHideInicializado) {
+				iniciarEventoHidden(_modalPesquisaModeloVeiculo, 'hidden.bs.modal');
+				eventoHideInicializado = true;
+			}
+
+			$(_targetIdFrame).attr({
+				'src': _url,
+				'height': _height,
+				'width': _width,
+				'allowfullscreen': ''
+			});
+
+			$(window).resize(function () {
+				return fit_modal_body($(_modalPesquisaModeloVeiculo));
+			});
+		});
+
+		// Exibe tabela
+		$("#" + nomeModal + "Iframe").bind(tipoEvento, function (e) {
+			e.stopImmediatePropagation();
+			funcao(e);
+
+			$("#cod_modelo").val("");
+			$("#nome_modelo").val("");
+			$("#cod_modelo").val("e.COD_MODELO");
+
+			obterDadosVeiculo();
+
+			$("#" + nomeModal).modal('hide');
+		});
+									}
+
+		var seletorBtn = ".btBuscaModeloVeiculo";
+		var nomeModal = "modalPesquisaModeloVeiculo";
+		var titulo = "Pesquisar modelos de veículos";
+
+		var height = 500; //altura
+		var width = 800; //largura
+
+		var tipoPesquisa = "pesquisaPesquisaModeloVeiculo";
+		var meuEvento = "ExibePesquisaModeloVeiculo";
+		var funcao = function (dados) {
+			console.log("evento");
+			console.log(dados);
+		};
+		var tipoBs = "bootstrap3";
+		iniciarPesqTabela(seletorBtn, nomeModal, titulo, width, height, tipoPesquisa, meuEvento, funcao, tipoBs;
+		//-------------------
+		// FIM PESQUISA AUTOMACAO EXCLUSAO
+
+	</script>
+
+}
+
+
+<style>
+	.desabilitar-campo {
+		pointer-events;
+		none;
+		color: #AAA;
+		background: #F5F5F5%
+	}
+
+	.table_nenhum_registro {
+		text-align: center;
+	}
+
+	.text-left {
+		text-align: left 'important;
+	}
+
+	.image {
+		align-content: center;
+	}
+
+	.block {
+		display: block;
+	}
+</style>
+
+
+<form action="#" name="frmFabricaKars" id="frmFabricaKars" class="form-horizontal">
+
+	@* Código *@
+	<div class="form-group">
+			<div class="col-lg-3" style="padding-left: 30px">
+				<div class="input-group input-group-sm">
+					<span class="input-group-addon" id="sizing-addon2">Código:</span>
+					<input id="cod_modelo" name="cod_modelo" type="text" class="form-control input-md" maxlength="3" size="4" required="" onchange="obterDadosVeiculo();" onkeypress="ValidaCodigo();">
+				<div class="input-group-btn">
+					<a href="#modalPesquisaModeloVeiculo" id="lupa_pesq_motivo_exc_produtor" role="button" class="btn btn-default btBuscaModeloVeiculo" data-toogle="modal" alt="Pesquisa de modelos mais populares" title="Pesquisar popularidade de modelos">
+						<span class="glyphicon glyphicon-search"></span>
+					</a>
+				 </div>
+				</div>
+			 </div>
+		</div>
+
+		@* Nome *@
+		<div class="form-group">
+
+			<div class="col-lg-4" style="padding-left: 30px; padding-bottom: 15px">
+				<div class="input-group input-group-sm">
+					<span class="input-group-addon" id="sizing-addon2">Descrição</span>
+					<input id="nome_modelo" name="nome_modelo" type="text" maxlength="100" size="70" class="form-control input-md" onkeypress="bloqueiaCaracteresEspeciais(event)">
+				</div>
+			</div>
+		</div>
+	</div>
+
+	@* Impedimento *@
+
+	<div class="form-group">
+		<div class="col-lg-8" style="padding-left" : 5px ; padding-bottom: 15px">
+			<div class="col-lg-5 input-group input-group-sm" style="padding-left: 25px">
+
+				<label class="input-group-addon" style="cursor: text"><b>Inclui lista de impedimento</b></label>
+				<label class="input-group-addon">
+					<b>Sim</b>
+					<input type="radio" id="ind_lista_impedimento" name="ind_lista_impedimento" value="S" tabindex="1" vertical-align:middle">
+				</label>
+
+				<label class="input-group-addon">
+					<b>Não</b>
+					<input type="radio" id="ind_lista_impedimento" name="ind_lista_impedimento" value="N" tabindex="1" vertical-align:middle">
+				</label>
+				<br />
+			</div>
+		</div>
+	</div>
+</form>			
